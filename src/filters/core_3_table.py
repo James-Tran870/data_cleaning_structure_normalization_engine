@@ -1,7 +1,29 @@
+def forward_fill_merged_cells(row_cells: list) -> list:
+    """
+    Thuật toán Stateful Propagation: Điền lặp lại giá trị của ô hợp lệ liền trước.
+    Chuẩn hóa chuỗi 'null' hoặc ô trống thô về khoảng trống đồng nhất trước khi xử lý.
+    """
+    current_value = ""
+    filled_row = []
+    
+    for cell in row_cells:
+        cleaned_cell = cell.strip()
+        # Chuẩn hóa từ khóa gộp ô lỗi
+        if cleaned_cell.lower() == "null":
+            cleaned_cell = ""
+            
+        if cleaned_cell == "":
+            filled_row.append(current_value if current_value != "" else "")
+        else:
+            current_value = cleaned_cell
+            filled_row.append(current_value)
+            
+    return filled_row
+
 def fix_table_geometry(lines: list) -> list:
     """
     LÕI 3: Chuẩn hóa hình học bảng biểu Markdown.
-    Bảo toàn mật độ ngữ nghĩa bằng thuật toán dồn ô trống thông minh.
+    Bảo toàn mật độ ngữ nghĩa bằng cơ chế nắn dòng và dịch chuyển ô thông minh.
     """
     fixed_lines = []
     in_table_block = False
@@ -14,7 +36,7 @@ def fix_table_geometry(lines: list) -> list:
         if is_separator and i > 0:
             in_table_block = True
             header_line = lines[i-1].strip()
-            # Số cột chuẩn = số lượng ô dữ liệu giữa các dấu '|'
+            # Đếm số lượng cột dữ liệu thực tế của hàng tiêu đề chuẩn
             target_columns = len([c for c in header_line.split('|')[1:-1]])
             if fixed_lines:
                 fixed_lines.pop()
@@ -26,21 +48,26 @@ def fix_table_geometry(lines: list) -> list:
                 fixed_lines.append(line)
                 continue
                 
-            # Phân rã các ô dữ liệu thực tế bên trong dòng
+            # 1. Phân rã toàn bộ các ô (Giữ nguyên cấu trúc hình học thô, không lọc bỏ ô trống)
             raw_cells = current_line.split('|')[1:-1]
-            # Thuật toán thông minh: Lọc bỏ các ô trống bừa bãi sinh ra do lỗi gộp ô của Repo 1
-            valid_cells = [c.strip() for c in raw_cells if c.strip() != ""]
             
-            # Điều nắn kích thước hòm đồ về đúng kích thước mốc chuẩn
-            if len(valid_cells) < target_columns:
-                # Nếu thiếu ô dữ liệu, bù các ô trống vào cuối
-                valid_cells += [""] * (target_columns - len(valid_cells))
-            elif len(valid_cells) > target_columns:
-                # Nếu thừa, chỉ cắt bỏ các phần tử trống thực sự ở đuôi
-                valid_cells = valid_cells[:target_columns]
+            # 2. Xử lý bẫy thừa thiếu dấu '|' cục bộ ở giữa dòng bằng cách lọc bớt phần tử rỗng dư thừa ở ĐUÔI
+            actual_content_cells = [c.strip() for c in raw_cells if c.strip() != ""]
+            if len(raw_cells) > target_columns and len(actual_content_cells) <= target_columns:
+                # Nếu số ô phân rã bị thừa do lỗi gõ dấu '|' rỗng bừa bãi, tiến hành cô lập nội dung thực
+                raw_cells = [c for c in raw_cells if c.strip() != ""]
+            
+            # 3. Kích hoạt bộ nhớ trạng thái điền ô gộp
+            filled_cells = forward_fill_merged_cells(raw_cells)
+            
+            # 4. Nắn chỉnh độ dài mốc chuẩn cuối cùng
+            if len(filled_cells) < target_columns:
+                filled_cells += [""] * (target_columns - len(filled_cells))
+            elif len(filled_cells) > target_columns:
+                filled_cells = filled_cells[:target_columns]
                 
-            # Đóng gói lại hàng Markdown hoàn chỉnh
-            current_line = "| " + " | ".join(valid_cells) + " |"
+            # Đóng gói sản phẩm tinh khiết
+            current_line = "| " + " | ".join([c.strip() for c in filled_cells]) + " |"
             fixed_lines.append(current_line)
         else:
             fixed_lines.append(line)
