@@ -1,0 +1,27 @@
+{
+  "system_metadata": {
+    "schema_version": "1.0.0"
+  },
+  "global_cleaner_settings": {
+    "enforce_utf8": true,
+    "strip_non_printable": true
+  },
+  "text_refinement_pipeline": {
+    "artifact_removal_rules": [
+      {
+        "rule_id": "TXT-001",
+        "name": "standard_page_number",
+        "enabled": true,
+        "regex_pattern": "^\\s*.*\\s*\\|\\s*\\d+\\s*$",
+        "replace_value": ""
+      },
+      {
+        "rule_id": "TXT-002",
+        "name": "de_hyphenation_vietnamese",
+        "enabled": true,
+        "regex_pattern": "(\\w+)-\\s*\\n\\s*(\\w+)",
+        "replace_value": "\\1\\2"
+      }
+    ]
+  }
+}
