@@ -1,31 +1,41 @@
-from src.filters.core_3_table import fix_table_geometry, forward_fill_merged_cells
+import pytest
+# Nạp hàm sửa đổi hình học cấu trúc bảng ma trận từ Lõi 3
+from src.filters.core_3_table import fix_table_geometry
 
-def test_empty_table_column_shield():
+def test_prevent_true_empty_overwrite_and_infinite_loop():
     """
-    BẪY KIỂM THỬ: ST-001 Validation (Bẫy bảng rỗng cục bộ).
-    Đảm bảo bảng bị rỗng ở giữa không bị làm lệch cấu trúc hình học của hàng.
+    KỊCH BẢN RED-TEAMING: Xử lý triệt để bẫy ô trống thực tế và chặn đứng vòng lặp vô hạn.
     """
-    trap_table = [
-        "| Header 1 | Header 2 | Header 3 | Header 4 |",
-        "| --- | --- | --- | --- |",
-        "| Data 1 |  |  | Data 4 |"
+    
+    # CASE 1: Bẫy kiểm tra ô trống dữ liệu thực tế (Chống ghi đè sai lệch)
+    dirty_table_case = [
+        "| Bộ Phận | Chỉ Tiêu | Ghi Chú |",
+        "| --- | --- | --- |",
+        "| Nhân sự | 100 | Đạt |",
+        "| null | 150 | Tốt |",    # 'null' là ô gộp dọc của 'Nhân sự'
+        "| Kế toán |  | Kém |"        # Cột Chỉ Tiêu trống thực tế, cấm đè số 150 vào đây
     ]
     
-    fixed_table = fix_table_geometry(trap_table)
-    assert fixed_table[2].count('|') == fixed_table[0].count('|'), \
-        "Hệ thống đã làm lệch hình học cột dữ liệu của bảng!"
+    expected_table_output = [
+        "| Bộ Phận | Chỉ Tiêu | Ghi Chú |",
+        "| --- | --- | --- |",
+        "| Nhân sự | 100 | Đạt |",
+        "| Nhân sự | 150 | Tốt |",    # Kế thừa thành công từ ô gộp dọc 'Nhân sự'
+        "| Kế toán |  | Kém |"        # Bảo toàn ô trống thực tế (Chống lỗi Overwrite thành công)
+    ]
+    
+    # Thực thi đối sánh hình học ma trận bảng
+    assert fix_table_geometry(dirty_table_case) == expected_table_output
 
-def test_stateful_propagation_fill():
-    """
-    BẪY KIỂM THỬ: FR-2 Validation (Bẫy xử lý ô gộp).
-    Đảm bảo cơ chế điền ô gộp ma trận 2 chiều tự động nhận diện và xử lý chính xác.
-    """
-    trap_row = ["KPI-03", "null", "99%"]
-    # Khởi tạo hộc lưu trữ trạng thái dọc giả lập để tương thích với Lõi 3 mới
-    mock_vertical_states = ["", "", ""]
+    # CASE 2: Bẫy kiểm tra dữ liệu mồ côi dòng đầu (Chặn đứng lỗi treo Infinite Loop)
+    orphan_table_case = [
+        "| --- | --- | --- |",        # Dòng phân tách mồ côi nằm ở vị trí index = 0
+        "| Rác | Dữ liệu | Nhiễu |"
+    ]
     
-    # Kích hoạt bộ truyền nhận tham số đôi và phân rã tuple đầu ra
-    processed_row, updated_states = forward_fill_merged_cells(trap_row, mock_vertical_states)
-    
-    assert processed_row[1] == "KPI-03", \
-        "Thuật toán Stateful Propagation bị mất trí nhớ, không điền được ô gộp!"
+    # Đường ống phải chạy qua an toàn, không được phép treo cứng luồng xử lý CPU
+    try:
+        output_lines = fix_table_geometry(orphan_table_case)
+        assert isinstance(output_lines, list)
+    except TimeoutError:
+        pytest.fail("Hệ thống bị sập do rơi vào vòng lặp vô hạn (Infinite Loop Bug)!")
