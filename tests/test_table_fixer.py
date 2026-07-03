@@ -39,3 +39,30 @@ def test_prevent_true_empty_overwrite_and_infinite_loop():
         assert isinstance(output_lines, list)
     except TimeoutError:
         pytest.fail("Hệ thống bị sập do rơi vào vòng lặp vô hạn (Infinite Loop Bug)!")
+
+def test_table_horizontal_and_vertical_propagation():
+    """
+    KỊCH BẢN BỔ SUNG: Kiểm tra khả năng lan truyền trạng thái 2 chiều.
+    Chống lỗi mất nhãn danh mục khi gặp ô trống thực tế ở đầu dòng của hàng mới.
+    """
+    mixed_file_case = [
+        "# Tài liệu Khảo sát Tri thức PKM",
+        "",
+        "| Tiêu chuẩn | Chỉ số KPI | Trạng thái |",
+        "| --- | --- | --- |",
+        "| KPI-01 | Lọc nhiễu văn bản | > 95% |",
+        "| KPI-02 | null | 100% |",
+        "| KPI-03 | Lọc nhiễu văn bản |  |"
+    ]
+    
+    expected_file_output = [
+        "# Tài liệu Khảo sát Tri thức PKM",
+        "",
+        "| Tiêu chuẩn | Chỉ số KPI | Trạng thái |",
+        "| --- | --- | --- |",
+        "| KPI-01 | Lọc nhiễu văn bản | > 95% |",
+        "| KPI-02 | Lọc nhiễu văn bản | 100% |", # Kế thừa dọc thành công từ 'Lọc nhiễu văn bản'
+        "| KPI-03 | Lọc nhiễu văn bản |  |"       # Bảo toàn cấu trúc, cấm làm mất chữ 'Lọc nhiễu văn bản'
+    ]
+    
+    assert fix_table_geometry(mixed_file_case) == expected_file_output
