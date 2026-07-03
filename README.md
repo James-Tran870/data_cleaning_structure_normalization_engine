@@ -1,56 +1,70 @@
-# Động cơ Làm sạch & Chuẩn hóa Cấu trúc Dữ liệu (Offline Engine)
+# Động cơ Làm sạch & Chuẩn hóa Cấu trúc Dữ liệu (Standard Python Project)
 
-Hệ thống xử lý sâu trung gian nhằm loại bỏ hoàn toàn nhiễu định dạng (số trang, dòng gãy, vỡ bảng Markdown) từ dữ liệu thô trước khi nạp vào hệ thống RAG hoặc PKM. Xử lý offline-first 100% trên máy cục bộ, bảo mật tuyệt đối dữ liệu.
+Hệ thống xử lý sâu trung gian vận hành theo mô hình Kiến trúc Lai phân rã (Decoupled Hybrid Architecture). Động cơ chuyên đảm nhận nhiệm vụ triệt tiêu hoàn toàn nhiễu định dạng văn bản và nắn thẳng ma trận bảng biểu bán cấu trúc thô từ Repo 1 trước khi nạp vào chuỗi quản lý tri thức PKM hoặc hệ thống RAG nâng cao. Hệ thống thiết kế theo nguyên lý offline-first 100%, bảo mật tuyệt đối dữ liệu trên máy cục bộ.
 
-## 1. Cây Cấu trúc Hệ thống Vật lý (Project Directory Tree)
+## 1. Cây Cấu trúc Thư mục Vật lý (Project Directory Tree)
 
-Dưới đây là sơ đồ quy hoạch vị trí toàn bộ các cấu phần trong không gian làm việc. Mọi tệp tin bắt buộc phải nằm đúng phân khu để đảm bảo nguyên lý Phân tách mối quan tâm (SoC):
+Sơ đồ quy hoạch không gian làm việc tuân thủ nghiêm ngặt nguyên lý Phân tách mối quan tâm (SoC), cô lập hoàn toàn giữa mã nguồn logic và dữ liệu cá nhân:
 
 ```text
 data_cleaning_structure_normalization_engine/
-├── .gitignore                     # Bộ lọc cách ly - Cách ly hoàn toàn vùng dữ liệu cá nhân input/output khỏi GitHub
-├── README.md                      # Sách hướng dẫn vận hành - Tài liệu định vị và quick-start hệ thống (Bản cập nhật v1.0.0)
+├── .gitignore                     # Lưới lọc bảo an - Cách ly tuyệt đối dữ liệu input/output khỏi GitHub
+├── README.md                      # Cẩm nang vận hành - Tài liệu hướng dẫn định vị và quản lý hệ thống
 ├── requirements.txt               # Danh sách linh kiện - Khai báo các thư viện Python xử lý offline
-├── config/                        # PHÂN KHU CẤU HÌNH (Sổ tay điều khiển động)
-│   └── rules.json                 # Quản lý tập trung 100% biểu thức Regex lọc nhiễu tiếng Việt (\1\2 chuẩn hóa)
-├── data/                          # PHÂN KHU BỂ CHỨA DỮ LIỆU (Cách ly tuyệt đối trên máy cục bộ)
-│   ├── input/                     # Nơi chứa các tệp Markdown thô cần lọc (Được bảo mật bởi .gitignore)
-│   └── output/                    # Nơi xả các tệp văn bản sạch sau khi xử lý (Được bảo mật bởi .gitignore)
-├── src/                           # PHÂN KHU LOGIC SẢN XUẤT (Nơi đặt máy móc cơ học)
-│   ├── __init__.py                # File kỹ thuật nhận diện gói cục bộ
-│   ├── main.py                    # Bộ điều phối trung tâm - Quét thư mục đầu vào và kích hoạt đường ống
+├── config/                        # PHÂN KHU CẤU HÌNH (Sổ tay tham số điều khiển động)
+│   └── rules.json                 # Quản lý tập trung biểu thức Regex không tham lam và tương thích OS
+├── data/                          # PHÂN KHU BỂ CHỨA DỮ LIỆU (Được cách ly bảo mật bởi .gitignore)
+│   ├── input/                     # Nơi chứa tài liệu thô chứa bẫy lỗi (Hỗ trợ file .md và .txt)
+│   └── output/                    # Nơi xả sản phẩm văn bản tinh khiết sau khi làm sạch cấu trúc
+├── src/                           # PHÂN KHU LOGIC SẢN XUẤT (Hạ tầng mã nguồn cốt lõi)
+│   ├── __init__.py                # Kỹ thuật nhận diện gói mô-đun
+│   ├── main.py                    # Bộ điều phối trung tâm - Tích hợp Hộp kiểm kiểm định Validation Gates
 │   └── filters/                   # Hệ thống 3 lõi lọc tuần tự
-│       ├── __init__.py            # File kỹ thuật nhận diện gói con
-│       ├── core_1_encoding.py     # LÕI 1: Trạm kiểm soát mã hóa byte-level, ép mã UTF-8 chuẩn
-│       ├── core_2_text.py         # LÕI 2: Màng lọc Regex động, quét và triệt tiêu nhiễu rác chân trang
-│       └── core_3_table.py        # LÕI 3: Khuôn hình học, xử lý ô gộp bằng thuật toán Stateful Propagation
-└── tests/                         # PHÂN KHU PHÒNG THÍ NGHIỆM (Red-Teaming tự động)
-    ├── __init__.py                # File kỹ thuật nhận diện thư mục kiểm thử
-    ├── test_encoding_fixer.py     # Bài thử nghiệm áp lực bẫy chuỗi nhị phân cố ý mang tính tài liệu
-    ├── test_table_fixer.py        # Bài thử nghiệm bẫy hình học bảng rỗng và thuật toán điền ô gộp
-    └── test_text_cleaner.py       # Bài thử nghiệm áp lực bẫy số học ngụy trang chứa ký tự gạch đứng
+│       ├── __init__.py            # Kỹ thuật nhận diện gói con
+│       ├── core_1_encoding.py     # LÕI 1: Trạm kiểm soát mã hóa byte-level, ép mã UTF-8 chuẩn phòng thủ
+│       ├── core_2_text.py         # LÕI 2: Màng lọc chuỗi chữ chữ động qua cấu hình rules.json
+│       └── core_3_table.py        # LÕI 3: Trạm ma trận 2 chiều, điền ô gộp bằng Stateful Propagation
+└── tests/                         # PHÂN KHU PHÒNG THÍ NGHIỆM (Hạ tầng kiểm định chất lượng QA)
+    ├── __init__.py                # Kỹ thuật nhận diện gói kiểm thử độc lập
+    ├── test_encoding_fixer.py     # Trạm thử nghiệm lõi 1 - Bài thử bẫy chuỗi nhị phân cố ý
+    ├── test_table_fixer.py        # Trạm thử nghiệm lõi 3 - Bài thử bẫy hình học bảng rỗng và ô gộp 2 chiều
+    └── test_text_cleaner.py       # Trạm thử nghiệm lõi 2 - Bài thử bẫy số học ngụy trang
 
 ```
 
-## 2. Kiến trúc Hệ thống Đường ống 3 Lõi
+## 2. Hệ thống Cơ học 3 Lõi lọc Chuyên sâu
 
-* **Lõi 1 (Encoding Fixer):** Ép luồng byte thô về UTF-8 chuẩn thông qua chế độ phòng thủ `errors='replace'`, ngăn chặn 100% hiện tượng crash sập hệ thống khi gặp file lỗi.
+Dòng dữ liệu thô di chuyển qua đường ống tuần tự (Pipeline Architecture) qua 3 màng bảo vệ nghiêm ngặt:
 
-* **Lõi 2 (Text Cleaner):** Quét biểu thức chính quy (Regex) được nạp động từ file cấu hình để xóa số trang và tự động nối liền từ tiếng Việt bị bẻ gãy do ranh giới trang vật lý.
+* **Lõi 1 (Encoding Fixer):** Thực thi chế độ phòng thủ `errors='replace'` ép luồng byte lỗi về định dạng UTF-8 chuẩn, chặn đứng 100% nguy cơ crash sập đường ống.
+* **Lõi 2 (Text Cleaner):** Vận hành công cụ Regex không tham lam (Non-greedy) nạp động từ cấu hình để triệt tiêu lỗi nuốt ngoại lệ, hỗ trợ linh hoạt cả hai định dạng ngắt dòng Windows (`\r\n`) và Linux (`\n`).
+* **Lõi 3 (Table Fixer):** Kích hoạt thuật toán Stateful Propagation 2 chiều (Forward Fill trục dọc và trục ngang), bảo toàn cấu trúc ma trận cột, chống lỗi dịch chuyển hàng và tự động dồn nội dung tràn đuôi.
 
-* **Lõi 3 (Table Fixer):** Tự động khóa vùng xử lý khi phát hiện ký hiệu bảng, thực hiện dồn ô trống và điền lặp lại giá trị gộp (Forward Fill) để bảo toàn 100% mật độ thông tin ngữ nghĩa.
+## 3. Sổ tay Vận hành và Bảo trì Hệ thống
 
-## 3. Sổ tay Vận hành Máy (Quick Start)
+### Kích hoạt đường ống trên máy trạm Windows
 
-Mở Terminal tại thư mục gốc của dự án trên Windows và thực hiện tuần tự các bước sau để chạy máy:
+Để tránh lỗi phân giải gói cục bộ (`ModuleNotFoundError`), hệ thống bắt buộc phải được kích hoạt dưới dạng mô-đun hệ thống từ thư mục gốc của dự án theo các bước sau:
 
-1. Kích hoạt môi trường ảo bảo vệ cục bộ:
+1. Mở Terminal tại thư mục gốc của dự án và kích hoạt môi trường ảo bảo vệ:
 `.\venv\Scripts\Activate.ps1`
-2. Đổ các file tài liệu thô cần làm sạch vào thư mục: `data/input/`
-3. Khởi động van tổng điều phối đường ống:
-`python src/main.py`
-4. Nhận kết quả văn bản sạch hoàn toàn tại thư mục: `data/output/`
+2. Đổ toàn bộ các tài liệu thô cần xử lý vào phân khu đầu vào: `data/input/`
+3. Khởi động bộ điều phối trung tâm bằng lệnh chạy mô-đun:
+`python -m src.main`
+4. Thu nhận sản phẩm sạch tinh khiết tại phân khu đầu ra: `data/output/`
 
-## 4. Nguyên lý Bảo trì Cấu hình (Tính Lũy đẳng)
+### Vận hành trạm kiểm thử tự động
 
-Hệ thống áp dụng nguyên lý tách biệt mã nguồn và dữ liệu logic. Khi cần thêm bớt các quy tắc làm sạch văn bản, người vận hành chỉ cần chỉnh sửa các mẫu Regex tại tệp `config/rules.json`. Lưu ý ký hiệu nhóm trong file JSON bắt buộc phải viết nhân đôi dấu gạch chéo ngược thành `\\1\\2` để Python nhận diện chính xác. Trình điều phối `src/main.py` sẽ tự động cập nhật năng lực mà không cần phải can thiệp hay chỉnh sửa bất kỳ dòng mã Python nào.
+Khi tiến hành thay đổi logic hoặc nâng cấp các lõi lọc, người vận hành cần chạy lệnh sau từ thư mục gốc dự án để kích hoạt toàn bộ hệ thống kiểm định QA tự động:
+`pytest -v`
+
+### Nguyên lý duy trì tính Lũy đẳng
+
+Hệ thống thiết kế tách biệt 100% logic lập trình và biểu thức Regex. Mọi hành vi điều chỉnh quy tắc khử nhiễu tiếng Việt chỉ được thực hiện tại tệp `config/rules.json`. Khi khai báo mẫu tìm kiếm trong file JSON, các ký hiệu backreference bắt buộc phải nhân đôi dấu gạch chéo ngược thành `\\1\\2` để trình điều phối phân giải chính xác sang mã Python.
+
+## 4. Chính sách Bảo mật Kho lưu trữ (Git Security Policy)
+
+Hệ thống thiết lập hàng rào bảo an nghiêm ngặt nhằm chống rò rỉ tri thức cá nhân lên mạng công cộng:
+
+* Toàn bộ nội dung nằm trong `data/input/` và `data/output/` bị chặn vĩnh viễn bởi `.gitignore`.
+* Lịch sử theo dõi của Git (Git Index) đối với hai phân khu này đã được gỡ bỏ hoàn toàn bằng lệnh `--cached` để đảm bảo tính an toàn tuyệt đối khi thực hiện lệnh đẩy mã nguồn `git push`.
