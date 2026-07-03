@@ -1,10 +1,13 @@
 {
   "system_metadata": {
-    "schema_version": "1.0.0"
+    "schema_version": "1.0.1",
+    "engine_compatibility": ">=2.0.0",
+    "last_modified": "2026-07-03T06:12:00Z"
   },
   "global_cleaner_settings": {
     "enforce_utf8": true,
-    "strip_non_printable": true
+    "strip_non_printable": true,
+    "whitelist_control_characters": ["\\n", "\\t", "\\r"]
   },
   "text_refinement_pipeline": {
     "artifact_removal_rules": [
@@ -12,15 +15,30 @@
         "rule_id": "TXT-001",
         "name": "standard_page_number",
         "enabled": true,
-        "regex_pattern": "^\\s*.*\\s*\\|\\s*\\d+\\s*$",
-        "replace_value": ""
+        "phase": "pre_processing",
+        "regex_pattern": "^\\s*([^|\\r\\n]*)\\|\\s*\\d+\\s*$",
+        "replace_value": "",
+        "description": "Lọc số trang vật lý sử dụng Regex không tham lam, triệt tiêu lỗi treo CPU"
       },
       {
         "rule_id": "TXT-002",
         "name": "de_hyphenation_vietnamese",
         "enabled": true,
-        "regex_pattern": "(\\w+)-\\s*\\n\\s*(\\w+)",
-        "replace_value": "\\1\\2"
+        "phase": "core_processing",
+        "regex_pattern": "(\\w+)-\\s*(?:\\r?\\n)+\\s*(\\w+)",
+        "replace_value": "\\1\\2",
+        "description": "Nối liền từ gãy tiếng Việt tương thích linh hoạt với cả ngắt dòng Windows (\\r\\n) và Linux (\\n)"
+      }
+    ],
+    "structural_normalization_rules": [
+      {
+        "rule_id": "ST-001",
+        "name": "multi_newline_compress",
+        "enabled": true,
+        "phase": "post_processing",
+        "regex_pattern": "(?:\\r?\\n){3,}",
+        "replace_value": "\\n\\n",
+        "description": "Ép cụm dấu xuống dòng bừa bãi về chuẩn phân tách đoạn độc lập hệ điều hành"
       }
     ]
   }
